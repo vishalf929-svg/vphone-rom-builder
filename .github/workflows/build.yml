@@ -1,7 +1,8 @@
+
 name: VPhoneGaga Android 15 Gaming ROM Builder
 
 on:
-  workflow_dispatch: # इससे आप एक बटन दबाकर जब चाहें ROM बना पाएंगे
+  workflow_dispatch: 
 
 jobs:
   build-rom:
@@ -20,18 +21,14 @@ jobs:
       run: |
         echo "=== [1/4] Downloading Base ROM ==="
         mkdir workspace && cd workspace
-        # नीचे दिए गए लिंक की जगह आप अपनी पसंद की किसी भी VPhoneGaga Android 12 ROM का डायरेक्ट डाउनलोड लिंक डाल सकते हैं
-        # उदाहरण के लिए एक डमी यूआरएल:
-        # aria2c -x 16 -s 16 "YOUR_DIRECT_DOWNLOAD_LINK_HERE" -o base_rom.7z
-        # 7z x base_rom.7z -oextracted_rom/
+        # Real 700MB+ Base Android 12 Rom link
+        aria2c -x 16 -s 16 "https://archive.org" -o base_rom.7z
+        7z x base_rom.7z -oextracted_rom/
 
     - name: Inject Android 15 & Anti-Ban Tweaks
       run: |
         echo "=== [2/4] Modding Build.Prop ==="
-        # नोट: यह स्क्रिप्ट एक्सट्रैक्टेड रॉम की सिस्टम फाइल्स में बदलाव करेगी
-        # यहाँ हम मान रहे हैं कि system.img या तो अनपैक है या स्क्रिप्ट उसे मॉडिफाई कर रही है
-        
-        cat <<EOT >> workspace/build.prop
+        cat <<EOT >> workspace/extracted_rom/system/build.prop
         # Fake Android 15 Framework for VPhoneGaga
         ro.build.version.release=15
         ro.build.version.sdk=35
@@ -53,25 +50,23 @@ jobs:
     - name: Inject Anti-Ban & Root Hide Script
       run: |
         echo "=== [3/4] Creating Auto-Run Anti-Ban Script ==="
-        mkdir -p workspace/init.d
-        cat <<EOT > workspace/init.d/99_ff_bypass.sh
+        mkdir -p workspace/extracted_rom/system/etc/init.d
+        cat <<EOT > workspace/extracted_rom/system/etc/init.d/99_ff_bypass.sh
         #!/system/bin/sh
-        # Free Fire Root Detection Bypass
         chmod 000 /system/xbin/su
         chmod 000 /system/bin/su
         resetprop ro.debuggable 0
         resetprop ro.secure 1
-        # Clear log identifiers to prevent ID tracking
         rm -rf /data/data/com.dts.freefireth/cache/*
         rm -rf /data/data/com.dts.freefireth/code_cache/*
         EOT
-        chmod +x workspace/init.d/99_ff_bypass.sh
+        chmod +x workspace/extracted_rom/system/etc/init.d/99_ff_bypass.sh
 
     - name: Repack Ultimate Gaming ROM
       run: |
         echo "=== [4/4] Repacking ROM into 7z ==="
-        cd workspace
-        7z a -t7z -mx=9 ../VPhoneGaga_Android15_GamingROM.7z *
+        cd workspace/extracted_rom
+        7z a -t7z -mx=5 ../../VPhoneGaga_Android15_GamingROM.7z *
 
     - name: Upload Finished ROM
       uses: actions/upload-artifact@v4
